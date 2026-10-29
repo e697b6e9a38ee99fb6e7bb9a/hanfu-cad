@@ -16,8 +16,10 @@ sys.path.insert(0, HERE)
 import sizing
 
 PY = sys.executable
-# DXF 需要 ezdxf，装在专用 venv 里；找不到就退回当前解释器
-_VENV = r"C://Users//user//.workbuddy//binaries//python//envs//hanfu//Scripts//python.exe"
+# DXF 需要 ezdxf，装在专用 venv 里；用 HANFU_PY 指定，否则按本机惯例路径猜，最后退回当前解释器
+_VENV = os.environ.get("HANFU_PY") or os.path.join(
+    os.path.expanduser("~"), ".workbuddy", "binaries", "python", "envs", "hanfu",
+    "Scripts", "python.exe")
 PY_DXF = _VENV if os.path.exists(_VENV) else PY
 BUILD = os.path.join(HERE, "build.py")
 DXF = os.path.join(HERE, "export_dxf.py")
