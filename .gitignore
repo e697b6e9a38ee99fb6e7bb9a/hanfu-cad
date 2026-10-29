@@ -21,3 +21,6 @@ desktop.ini
 .buildenv/
 pyi_build*/
 pyi_dist*/
+
+# 各延伸项目的回滚快照（体积大、且是过程备份，不入库）
+**/_rollback_*/
