@@ -4,16 +4,18 @@
 ────────────────────────────────────────────────────────────────
 依据：sources/fig_深衣型矩领_三步.png、fig_深衣型矩领_剪裁与平铺.jpg
       孙韬《拒绝碰瓷，一篇文章说清楚西周矩领》"窄袖深衣的腰线，实为高腰甚至齐胸位置"
-  · 材料 = 4 幅 × 3 段（总料长固定 3744）
+  · 材料 = 4 幅 × 3 段（中段 = 2×衣长，上/下段 = 裳高）
   · 中段对折 → 上衣前后；**衣长 = 袖肥 = 袖口**（同一个数！）
   · 上段、下段折过来 → 下裳（两段等长，把剩余的料都给它）
   · 前中剪开两道（间距 160），两襟各向里折 40，中间露出后片 80，上领条
   · 腰线（衣身接缝）= 中段的上下边
 
-★ 宽袖 ↔ 窄袖只有一个旋钮：L_BODY
-    L_BODY = 624 → V2 宽袖（袖口 624，腰线在自然腰/胯）
-    L_BODY = 195 → V3 窄袖（袖口 195，腰线抬到齐胸）
-  衣长一缩，中段跟着缩短，剩下的料全部归下裳；总长 1872 不变。
+★ 两个旋钮：
+  L_BODY    衣长（＝袖肥＝袖口）
+        624 → V2 宽袖（腰线在自然腰/胯）｜195 → 窄袖（腰线抬到齐胸）
+  GARMENT_L 成衣总长（肩线到摆）
+        1872 → 礼服（及踝）｜770 → 便服/普通外套（厂商实测男 M 衣长）
+  裳高 = GARMENT_L − L_BODY，布片高 = 中段 + 上下两段。
 
 像素反测（1 幅 = 87.75 px 剪裁图 / 84 px 平铺 → 5.698 / 5.952 mm/px）
   段高 218.5 px → 1248 ｜ 衣长 109 px → 624 ｜ 裳高 215 px → 1248
@@ -26,9 +28,10 @@ import os, json
 _DEF = dict(
     FAB_W=500.0,        # 单幅宽
     N_PANEL=4,          # 拼幅数（= 通袖 4 匹）
-    SEG_H=1248.0,       # 每段高（V2 定稿值；V3 窄袖时只用来定总料长 3×SEG_H）
+    SEG_H=1248.0,       # 旧版段高，现仅作参考（布片高改由 L_BODY + GARMENT_L 决定）
     N_SEG=3,            # 段数：中段＝上衣，上下两段＝裳
     L_BODY=195.0,       # ★衣长（＝袖肥＝袖口，三者同值）：窄袖 195；V2 宽袖版填 624
+    GARMENT_L=770.0,    # ★成衣总长（肩线到摆）：便服外套 770（厂商实测男 M 衣长）；礼服去掉这行用 1872
     SLIT_HALF=80.0,     # 前中剪开线半间距（→ 间距 160）
     LAPEL_FOLD=40.0,    # 各向里折 40（折后布边在 ±40，中间露出后片 80）
     COLLAR_W=95.0,      # 领条宽
@@ -44,7 +47,7 @@ P = dict(_DEF)
 P.update(json.loads(os.environ.get("HANFU_PARAMS", "{}")))
 
 FAB_W = P["FAB_W"]; N_PANEL = int(P["N_PANEL"])
-SEG_H = P["SEG_H"]; N_SEG = int(P["N_SEG"])
+N_SEG = int(P["N_SEG"])
 SLIT_HALF = P["SLIT_HALF"]; LAPEL_FOLD = P["LAPEL_FOLD"]
 COLLAR_W = P["COLLAR_W"]; NECK_TOP_HALF = P["NECK_TOP_HALF"]; NECK_H = P["NECK_H"]
 ARMPIT = P["ARMPIT"]; HEM_HALF = P["HEM_HALF"]
@@ -58,13 +61,13 @@ HOOK_H = P["HOOK_H"] * _K
 
 HALF_S = FAB_W * N_PANEL / 2.0          # 1000
 S = HALF_S * 2                          # 通袖 2000
-CLOTH_H = SEG_H * N_SEG                 # 布片高 3744（总料长不变）
 SEG_MID = 2.0 * L_BODY                  # 中段（对折成上衣）
-SEG_OUT = (CLOTH_H - SEG_MID) / 2.0     # 上段 / 下段（裳·后 / 裳·前），两段等长
+SHANG_H = P["GARMENT_L"] - L_BODY       # 裳高 = 成衣总长 − 衣长
+SEG_OUT = SHANG_H                       # 上段 / 下段（裳·后 / 裳·前），两段等长
+CLOTH_H = SEG_MID + 2.0 * SEG_OUT       # 布片高（三段之和）
 Y_SEG1 = SEG_OUT                        # 中段下边 = 腰线（一层）
 Y_FOLD = SEG_OUT + L_BODY               # 中段正中 = 对折线 = 肩线
 Y_SEG2 = SEG_OUT + SEG_MID              # 中段上边 = 腰线（另一层）
-SHANG_H = SEG_OUT                       # 裳高
 HALF_WAIST = ARMPIT                     # 裳腰半宽（平铺正面轮廓）
 COLLAR_L = 2 * (L_BODY + SHANG_H) + SLIT_HALF * 2   # 一条直的，绕两襟到摆
 
@@ -97,7 +100,7 @@ def FY(d): return FTOP + d                        # 平铺：d = 距顶边向下
 
 # ── 标题 ───────────────────────────────────────────────────────────
 s.append('<g font-family="sans-serif" fill="%s">' % BLACK)
-s.append('  <text x="%.1f" y="%.1f" font-size="52" font-weight="600">深衣型矩领 · ① 材料与 ② 制作（V3 窄袖 · 衣长＝袖口 %d）</text>' % (MARGIN, 100, round(L_BODY)))
+s.append('  <text x="%.1f" y="%.1f" font-size="52" font-weight="600">深衣型矩领 · ① 材料与 ② 制作（V3 窄袖 · 衣长＝袖口 %d · 总长 %d）</text>' % (MARGIN, 100, round(L_BODY), round(L_BODY + SHANG_H)))
 s.append('  <text x="%.1f" y="%.1f" font-size="32" fill="%s">4 匹拼幅 × 3 段 · 中段对折＝上衣（衣长 %d ＝ 袖口宽）· 上下两段折过来＝下裳（各 %d 高）· 前中剪开 %d、两襟各折 %d · 上领条</text>'
          % (MARGIN, 158, GRAY, round(L_BODY), round(SHANG_H), round(SLIT_HALF * 2), round(LAPEL_FOLD)))
 s.append('  <text x="%.1f" y="%.1f" font-size="30" fill="%s">通袖 %d ＝ %d 幅 × %.0f ｜ 总料长 %d ＝ 中段 %d + 上段 %d + 下段 %d ｜ 腰线（衣身接缝）＝ 中段上下边 = 齐胸高腰 ｜ 腋点 ±%d</text>'
@@ -306,7 +309,7 @@ s.append('  <path d="M %.1f %.1f L %.1f %.1f L %.1f %.1f L %.1f %.1f Z"/>' % (
     MARGIN + COLLAR_L, COLLAR_OY + COLLAR_W, MARGIN, COLLAR_OY + COLLAR_W))
 s.append('</g>')
 s.append('<g font-family="sans-serif" fill="%s">' % BLACK)
-s.append('  <text x="%.1f" y="%.1f" font-size="34" font-weight="600">④ 领条 ×1 ｜ %d × %d ｜ 一条直的，成型后呈倒 U：左襟 → 绕颈 → 右襟（长度待核）</text>'
+s.append('  <text x="%.1f" y="%.1f" font-size="34" font-weight="600">④ 领条 ×1 ｜ %d × %d ｜ 一条直的，成型后呈倒 U：左襟 → 绕颈 → 右襟</text>'
          % (MARGIN, COLLAR_OY - 26, round(COLLAR_L), round(COLLAR_W)))
 s.append('</g>')
 
@@ -331,8 +334,8 @@ open(fp, "w", encoding="utf-8").write("\n".join(s))
 
 json.dump({
     "params": P,
-    "resolved": {"S": S, "HALF_S": HALF_S, "CLOTH_H": CLOTH_H, "SEG_H": SEG_H,
-                 "SEG_MID": SEG_MID, "SEG_OUT": SEG_OUT,
+    "resolved": {"S": S, "HALF_S": HALF_S, "CLOTH_H": CLOTH_H,
+                 "SEG_MID": SEG_MID, "SEG_OUT": SEG_OUT, "GARMENT_L": L_BODY + SHANG_H,
                  "Y_SEG1": Y_SEG1, "Y_FOLD": Y_FOLD, "Y_SEG2": Y_SEG2,
                  "L_BODY": L_BODY, "SHANG_H": SHANG_H, "ARMPIT": ARMPIT,
                  "ARMPIT_H": ARMPIT_H, "HOOK_H": HOOK_H, "HOOK_OUT": HOOK_OUT,

@@ -76,7 +76,7 @@ for p in pieces:
     p["box"] = [min(xs), min(ys), max(xs), max(ys)]
 
 P["pieces"] = pieces
-P["title"] = "深衣型矩领 V3 窄袖（衣长＝袖口 %d）" % round(BODY)
+P["title"] = "深衣型矩领 V3 窄袖（衣长＝袖口 %d，总长 %d）" % (round(BODY), round(BODY + SEG_S))
 json.dump(P, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print("已并入 %d 片 → %s" % (len(pieces), OUT))
 for p in pieces:
